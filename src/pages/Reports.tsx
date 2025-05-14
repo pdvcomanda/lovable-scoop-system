@@ -19,7 +19,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { type DateRange } from '@/components/ui/calendar';
+import { type DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar as CalendarIcon } from 'lucide-react';
@@ -334,17 +334,5 @@ const Reports = () => {
     </MainLayout>
   );
 };
-
-// Add custom Calendar component from date-range-picker
-const Calendar = React.forwardRef<
-  React.ElementRef<typeof DateRange>,
-  React.ComponentPropsWithoutRef<typeof DateRange>
->((props, ref) => (
-  <DateRange
-    ref={ref}
-    {...props}
-  />
-));
-Calendar.displayName = "Calendar";
 
 export default Reports;
