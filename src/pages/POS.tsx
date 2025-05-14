@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,9 +11,13 @@ import {
   TableHeader, TableRow 
 } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { Minus, Plus, ShoppingCart, Printer, Trash } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Printer, Trash, CreditCard, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/sonner";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { PaymentForm } from "@/components/forms/PaymentForm";
+import { ConfirmPrintDialog } from "@/components/dialogs/ConfirmPrintDialog";
+import { useNavigate, useLocation } from "react-router-dom";
 
 // Dados de exemplo
 const categories = ["Açaí", "Sorvete", "Complementos", "Bebidas"];
@@ -40,12 +44,38 @@ interface CartItem {
   weight: number;
 }
 
+interface PaymentData {
+  method: string;
+  amountPaid: number;
+  change: number;
+}
+
 const POS = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [activeCategory, setActiveCategory] = useState(categories[0]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [balance, setBalance] = useState(0);
   const [customerName, setCustomerName] = useState("");
+  
+  // Estados para gerenciar o fluxo de pagamento e impressão
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
+  const [orderNumber, setOrderNumber] = useState("0001");
+
+  // Configurações da loja para o cupom
+  const storeSettings = {
+    name: "Açaí e Sorvetes Delícia",
+    address: "Rua dos Açaís, 123 - Jardim Tropical",
+  };
+
+  // Carregar o estado inicial do componente se vier de uma navegação
+  useEffect(() => {
+    // Implementar lógica para carregar estado se necessário
+    console.log("POS component mounted", location.state);
+  }, [location]);
 
   // Filtrar produtos por categoria e termo de busca
   const filteredProducts = products.filter(
@@ -97,17 +127,65 @@ const POS = () => {
     return cart.reduce((total, item) => total + item.price * item.quantity * item.weight, 0);
   };
 
-  // Finalizar venda
-  const processCheckout = () => {
+  // Abrir modal de pagamento
+  const openPayment = () => {
     if (cart.length === 0) {
       toast.error("Adicione itens ao carrinho para finalizar a venda");
       return;
     }
+    setIsPaymentOpen(true);
+  };
+
+  // Completar o pagamento
+  const completePayment = (data: PaymentData) => {
+    setPaymentData(data);
+    setIsPaymentOpen(false);
+    setShowPrintDialog(true); // Mostrar diálogo de impressão após pagamento
     
+    // Simular geração de número de pedido
+    const now = new Date();
+    const newOrderNumber = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
+    setOrderNumber(newOrderNumber);
+  };
+
+  // Finalizar venda após impressão
+  const finalizeSale = () => {
     toast.success(`Venda finalizada com sucesso! Total: ${calculateTotal().toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
     setCart([]);
     setCustomerName("");
+    setPaymentData(null);
+    setShowPrintDialog(false);
   };
+
+  // Dados para o cupom fiscal
+  const receiptData = {
+    storeName: storeSettings.name,
+    storeAddress: storeSettings.address,
+    items: cart.map(item => ({
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+      weight: item.weight
+    })),
+    date: new Date(),
+    total: calculateTotal(),
+    customerName: customerName || undefined,
+    paymentMethod: paymentData?.method ? getPaymentMethodName(paymentData.method) : undefined,
+    amountPaid: paymentData?.amountPaid,
+    change: paymentData?.change,
+    orderNumber
+  };
+
+  // Função auxiliar para converter código de pagamento em nome legível
+  function getPaymentMethodName(method: string) {
+    switch (method) {
+      case 'dinheiro': return 'Dinheiro';
+      case 'cartao_credito': return 'Cartão de Crédito';
+      case 'cartao_debito': return 'Cartão de Débito';
+      case 'pix': return 'PIX';
+      default: return method;
+    }
+  }
 
   return (
     <MainLayout title="Ponto de Venda">
@@ -295,16 +373,43 @@ const POS = () => {
                   <Button variant="outline" className="w-full" onClick={() => setCart([])}>
                     Limpar
                   </Button>
-                  <Button className="w-full" onClick={processCheckout}>
-                    <Printer className="mr-2 h-4 w-4" />
-                    Finalizar
-                  </Button>
+                  
+                  <Sheet open={isPaymentOpen} onOpenChange={setIsPaymentOpen}>
+                    <SheetTrigger asChild>
+                      <Button 
+                        className="w-full flex items-center gap-2" 
+                        onClick={openPayment} 
+                        disabled={cart.length === 0}
+                      >
+                        <CreditCard className="h-4 w-4" />
+                        Pagamento
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="right">
+                      <SheetHeader>
+                        <SheetTitle>Pagamento</SheetTitle>
+                      </SheetHeader>
+                      <div className="py-4">
+                        <PaymentForm
+                          total={calculateTotal()}
+                          onComplete={completePayment}
+                        />
+                      </div>
+                    </SheetContent>
+                  </Sheet>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
+      
+      {/* Diálogo de Impressão */}
+      <ConfirmPrintDialog 
+        isOpen={showPrintDialog}
+        onClose={finalizeSale}
+        receiptData={receiptData}
+      />
     </MainLayout>
   );
 };

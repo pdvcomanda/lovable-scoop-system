@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,208 +12,136 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
+import { EmployeeForm } from "@/components/EmployeeForm";
+import { toast } from "@/components/ui/sonner";
+import { useLocation } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 import { 
-  Form, FormControl, FormField, FormItem, 
-  FormLabel, FormMessage 
-} from "@/components/ui/form";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { Plus, User } from "lucide-react";
+  Plus, 
+  Pencil, 
+  Trash, 
+  UserCog, 
+  Check, 
+  X 
+} from "lucide-react";
 
-// Dados de exemplo
-const dummyUsers = [
-  {
-    id: "1",
-    name: "Administrador",
-    email: "admin@acaipos.com",
-    role: "admin",
-    status: "ativo",
-  },
-  {
-    id: "2",
-    name: "João Silva",
-    email: "joao@acaipos.com",
-    role: "employee",
-    status: "ativo",
-  },
-  {
-    id: "3",
-    name: "Maria Oliveira",
-    email: "maria@acaipos.com",
-    role: "employee",
-    status: "ativo",
-  },
-  {
-    id: "4",
-    name: "Carlos Santos",
-    email: "carlos@acaipos.com",
-    role: "employee",
-    status: "inativo",
-  },
-];
-
-const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "O nome deve ter pelo menos 2 caracteres.",
-  }),
-  email: z.string().email({
-    message: "Email inválido.",
-  }),
-  role: z.enum(["admin", "employee"], {
-    message: "Selecione uma função válida.",
-  }),
-  password: z.string().min(6, {
-    message: "A senha deve ter pelo menos 6 caracteres.",
-  }),
-});
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'manager' | 'employee';
+  active: boolean;
+}
 
 const Users = () => {
-  const [users, setUsers] = useState(dummyUsers);
-  const [open, setOpen] = useState(false);
+  const location = useLocation();
+  const [users, setUsers] = useState<User[]>([
+    { id: "1", name: "Admin do Sistema", email: "admin@acaidelicia.com.br", role: "admin", active: true },
+    { id: "2", name: "Carlos Gerente", email: "gerente@acaidelicia.com.br", role: "manager", active: true },
+    { id: "3", name: "Maria Vendedora", email: "maria@acaidelicia.com.br", role: "employee", active: true },
+    { id: "4", name: "João Vendedor", email: "joao@acaidelicia.com.br", role: "employee", active: false },
+  ]);
+  
   const [searchTerm, setSearchTerm] = useState("");
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      role: "employee",
-      password: "",
-    },
-  });
-
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    // Simular adição de usuário
-    const newUser = {
+  const [openDialog, setOpenDialog] = useState(false);
+  const [openDialogRef, setOpenDialogRef] = useState(false);
+  
+  // Verifique se devemos abrir o diálogo ao carregar a página
+  useEffect(() => {
+    if (location.state?.openAddDialog && !openDialogRef) {
+      setOpenDialog(true);
+      setOpenDialogRef(true);
+    }
+  }, [location.state, openDialogRef]);
+  
+  // Filtrar usuários com base na busca
+  const filteredUsers = users.filter(user => 
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
+  const handleAddUser = (values: any) => {
+    const newUser: User = {
       id: Date.now().toString(),
-      name: values.name,
+      name: values.fullName,
       email: values.email,
-      role: values.role,
-      status: "ativo",
+      role: values.role as 'admin' | 'manager' | 'employee',
+      active: true
     };
+    
     setUsers([...users, newUser]);
-    setOpen(false);
-    form.reset();
+    setOpenDialog(false);
+    toast.success(`Funcionário ${newUser.name} adicionado com sucesso!`);
+  };
+  
+  const handleToggleActive = (id: string) => {
+    setUsers(users.map(user => 
+      user.id === id ? { ...user, active: !user.active } : user
+    ));
+    
+    const user = users.find(u => u.id === id);
+    if (user) {
+      toast.success(`Usuário ${user.name} ${user.active ? 'desativado' : 'ativado'} com sucesso!`);
+    }
+  };
+  
+  const handleDeleteUser = (id: string) => {
+    const user = users.find(u => u.id === id);
+    if (user?.role === 'admin') {
+      toast.error("Não é possível remover um usuário administrador");
+      return;
+    }
+    
+    setUsers(users.filter(user => user.id !== id));
+    const deletedUser = users.find(u => u.id === id);
+    if (deletedUser) {
+      toast.success(`Usuário ${deletedUser.name} removido com sucesso!`);
+    }
+  };
+  
+  const roleLabels: Record<string, { label: string, className: string }> = {
+    admin: { label: "Administrador", className: "bg-blue-100 text-blue-800" },
+    manager: { label: "Gerente", className: "bg-purple-100 text-purple-800" },
+    employee: { label: "Vendedor", className: "bg-green-100 text-green-800" },
   };
 
-  const filteredUsers = users.filter(
-    user => 
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
-    <MainLayout title="Usuários">
+    <MainLayout title="Funcionários">
       <div className="flex flex-col gap-5">
         <div className="flex flex-col sm:flex-row justify-between gap-4">
           <div className="w-full sm:w-1/2">
             <Input
-              placeholder="Buscar usuários..."
+              placeholder="Buscar funcionários..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={openDialog} onOpenChange={setOpenDialog}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
-                Novo Usuário
+                Novo Funcionário
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Adicionar Usuário</DialogTitle>
+                <DialogTitle>Adicionar Funcionário</DialogTitle>
                 <DialogDescription>
-                  Preencha os dados para criar um novo usuário.
+                  Preencha os dados para cadastrar um novo funcionário no sistema.
                 </DialogDescription>
               </DialogHeader>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nome</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Nome completo" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="email@exemplo.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Função</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione uma função" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="admin">Administrador</SelectItem>
-                            <SelectItem value="employee">Funcionário</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Senha</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="******" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <DialogFooter>
-                    <Button type="submit">Salvar</Button>
-                  </DialogFooter>
-                </form>
-              </Form>
+              
+              <EmployeeForm onSubmit={handleAddUser} />
             </DialogContent>
           </Dialog>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Lista de Usuários</CardTitle>
+            <CardTitle>Lista de Funcionários</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
@@ -229,40 +157,57 @@ const Users = () => {
               <TableBody>
                 {filteredUsers.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell className="font-medium flex items-center gap-2">
-                      <User className="h-4 w-4 text-gray-400" />
-                      {user.name}
-                    </TableCell>
+                    <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      <span className={
-                        user.role === "admin" 
-                          ? "bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium"
-                          : "bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs font-medium"
-                      }>
-                        {user.role === "admin" ? "Administrador" : "Funcionário"}
-                      </span>
+                      <Badge 
+                        variant="outline" 
+                        className={roleLabels[user.role].className}
+                      >
+                        {roleLabels[user.role].label}
+                      </Badge>
                     </TableCell>
                     <TableCell>
-                      <span className={
-                        user.status === "ativo" 
-                          ? "bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium"
-                          : "bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium"
-                      }>
-                        {user.status}
-                      </span>
+                      {user.active ? (
+                        <Badge variant="outline" className="bg-green-100 text-green-800">
+                          <Check className="mr-1 h-3 w-3" /> Ativo
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-red-100 text-red-800">
+                          <X className="mr-1 h-3 w-3" /> Inativo
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">
-                        Editar
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleToggleActive(user.id)}
+                        >
+                          <UserCog className="h-4 w-4" />
+                        </Button>
+                        {user.role !== 'admin' && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-red-500"
+                            onClick={() => handleDeleteUser(user.id)}
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
                 {filteredUsers.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-4">
-                      Nenhum usuário encontrado
+                      Nenhum funcionário encontrado
                     </TableCell>
                   </TableRow>
                 )}

@@ -5,7 +5,7 @@ import {
   LayoutDashboard, 
   ShoppingCart, 
   Package, 
-  Receipt, 
+  FileText, 
   BarChart, 
   Users, 
   Settings,
@@ -52,9 +52,9 @@ export const Sidebar = ({ open = false, onClose }: SidebarProps) => {
       icon: Package,
     },
     {
-      title: 'Vendas',
+      title: 'Compras',
       href: '/invoices',
-      icon: Receipt,
+      icon: FileText,
     },
     {
       title: 'Relatórios',
