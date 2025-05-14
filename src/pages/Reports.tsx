@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card } from '@/components/ui/card';
@@ -20,7 +19,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { DateRange } from '@/components/ui/calendar';
+import { type DateRange } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar as CalendarIcon } from 'lucide-react';
@@ -34,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CalendarDateRangePicker } from '@/components/date-range-picker';
+import { Calendar } from '@/components/ui/calendar';
 
 // Sample data for reports
 const salesData = [
