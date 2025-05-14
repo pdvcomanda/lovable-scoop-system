@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,8 @@ import {
   Banknote, 
   QrCode, 
   ReceiptText, 
-  Scale 
+  Scale,
+  ShoppingCart 
 } from 'lucide-react';
 
 // Sample data
