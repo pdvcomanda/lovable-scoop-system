@@ -1,40 +1,38 @@
 
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { useLocation } from 'react-router-dom';
-import { Menu, User, Bell } from 'lucide-react';
+import { UserMenu } from './UserMenu';
+import { Menu } from 'lucide-react';
+import { useMobile } from '@/hooks/use-mobile';
 
 interface HeaderProps {
   title?: string;
+  onMenuToggle?: () => void;
 }
 
-export const Header = ({ title }: HeaderProps) => {
-  const location = useLocation();
-  const pathSegments = location.pathname.split('/').filter(Boolean);
-  const currentPage = pathSegments.length > 0 
-    ? pathSegments[pathSegments.length - 1].charAt(0).toUpperCase() + pathSegments[pathSegments.length - 1].slice(1) 
-    : 'Dashboard';
+export const Header = ({ title = 'Dashboard', onMenuToggle }: HeaderProps) => {
+  const { isMobile } = useMobile();
+  const [mounted, setMounted] = useState(false);
   
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
   return (
-    <header className="bg-white border-b border-gray-200 shadow-sm">
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center space-x-3">
-          <Button variant="ghost" size="icon" className="md:hidden">
+    <header className="flex h-14 items-center border-b bg-background px-4 lg:px-6">
+      <div className="flex items-center gap-4">
+        {isMobile && (
+          <Button variant="ghost" size="icon" onClick={onMenuToggle}>
             <Menu className="h-5 w-5" />
+            <span className="sr-only">Toggle menu</span>
           </Button>
-          <h1 className="text-xl font-bold text-gray-800">{title || currentPage}</h1>
-        </div>
-        
-        <div className="flex items-center space-x-3">
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500" />
-          </Button>
-          
-          <Button variant="ghost" size="icon">
-            <User className="h-5 w-5" />
-          </Button>
-        </div>
+        )}
+        <h1 className="text-lg font-semibold md:text-xl">{title}</h1>
+      </div>
+      <div className="ml-auto flex items-center gap-2">
+        <UserMenu />
       </div>
     </header>
   );
