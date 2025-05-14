@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -26,8 +25,17 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Plus } from "lucide-react";
 
+// Define product type
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  unit: string;
+  stock: number;
+}
+
 // Dados de exemplo
-const dummyProducts = [
+const dummyProducts: Product[] = [
   {
     id: "1",
     name: "Açaí Tradicional",
@@ -81,7 +89,7 @@ const formSchema = z.object({
 });
 
 const Products = () => {
-  const [products, setProducts] = useState(dummyProducts);
+  const [products, setProducts] = useState<Product[]>(dummyProducts);
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -96,10 +104,13 @@ const Products = () => {
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    // Simular adição de produto
-    const newProduct = {
+    // Create new product with required fields
+    const newProduct: Product = {
       id: Date.now().toString(),
-      ...values,
+      name: values.name,
+      price: values.price,
+      unit: values.unit,
+      stock: values.stock,
     };
     setProducts([...products, newProduct]);
     setOpen(false);
