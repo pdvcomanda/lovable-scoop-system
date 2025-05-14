@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { WhatsAppChat } from "@/components/chat/WhatsAppChat";
 
 // Import pages
 import LoginPage from "./pages/Auth/LoginPage";
@@ -17,6 +18,7 @@ import Invoices from "./pages/Invoices";
 import Reports from "./pages/Reports";
 import Users from "./pages/Users";
 import Settings from "./pages/Settings";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -69,6 +71,11 @@ const App = () => (
                 <Settings />
               </ProtectedRoute>
             } />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } />
             
             {/* Redirecionamento da página inicial para o dashboard */}
             <Route path="/index" element={<Navigate to="/" replace />} />
@@ -76,6 +83,11 @@ const App = () => (
             {/* Página 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          
+          {/* WhatsApp Chat - visível em todas as páginas protegidas */}
+          <ProtectedRoute>
+            <WhatsAppChat />
+          </ProtectedRoute>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

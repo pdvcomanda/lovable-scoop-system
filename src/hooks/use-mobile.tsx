@@ -1,26 +1,29 @@
 
-import * as React from "react"
-
-const MOBILE_BREAKPOINT = 768
+import { useState, useEffect } from 'react';
 
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+  const [isMobile, setIsMobile] = useState(false);
 
-  React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
-    const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    }
-    mql.addEventListener("change", onChange)
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    return () => mql.removeEventListener("change", onChange)
-  }, [])
+  useEffect(() => {
+    // Função para verificar se é dispositivo móvel
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
 
-  return !!isMobile
+    // Verificar inicialmente
+    checkIfMobile();
+
+    // Adicionar listener para redimensionamento
+    window.addEventListener('resize', checkIfMobile);
+
+    // Limpar listener na desmontagem
+    return () => {
+      window.removeEventListener('resize', checkIfMobile);
+    };
+  }, []);
+
+  return { isMobile };
 }
 
-// Adding this alias for backward compatibility
-export const useMobile = () => {
-  const isMobile = useIsMobile()
-  return { isMobile }
-}
+// Alias para compatibilidade com código existente
+export const useMobile = useIsMobile;
