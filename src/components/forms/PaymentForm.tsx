@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +9,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CreditCard, Wallet, CurrencyCircleDollar } from "lucide-react";
+import { CreditCard, Wallet } from "lucide-react";
+import { CurrencyCircleDollar } from "@/components/icons/CurrencyCircleDollar";
 
 interface PaymentFormProps {
   total: number;

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -45,39 +44,19 @@ export const NotificationsSettings = () => {
   const testNotification = (type: string) => {
     switch (type) {
       case "lowStock":
-        toast({
-          title: "Alerta de Estoque Baixo",
-          description: "Açaí Tradicional está com estoque baixo (2kg restantes).",
-          variant: "destructive",
-        });
+        toast.error("Alerta de Estoque Baixo: Açaí Tradicional está com estoque baixo (2kg restantes).");
         break;
       case "newOrder":
-        toast({
-          title: "Novo Pedido Recebido",
-          description: "Pedido #12345 foi recebido agora.",
-          variant: "default",
-        });
+        toast.success("Novo Pedido Recebido: Pedido #12345 foi recebido agora.");
         break;
       case "report":
-        toast({
-          title: "Relatório de Vendas",
-          description: "O relatório diário de vendas está disponível para visualização.",
-          variant: "default",
-        });
+        toast.info("Relatório de Vendas: O relatório diário de vendas está disponível para visualização.");
         break;
       case "whatsapp":
-        toast({
-          title: "Mensagem de WhatsApp",
-          description: `Mensagem de teste enviada para ${whatsappNumber}.`,
-          variant: "default",
-        });
+        toast.success(`Mensagem de WhatsApp: Mensagem de teste enviada para ${whatsappNumber}.`);
         break;
       case "email":
-        toast({
-          title: "Email de Teste",
-          description: `Email de teste enviado para ${emailAddress}.`,
-          variant: "default",
-        });
+        toast.success(`Email de Teste: Email de teste enviado para ${emailAddress}.`);
         break;
       default:
         break;

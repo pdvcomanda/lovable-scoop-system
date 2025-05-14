@@ -15,6 +15,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Tabs,
@@ -32,6 +33,7 @@ import * as z from "zod";
 import { Package, Plus, Edit, Trash, AlertTriangle, ArrowUpDown } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,

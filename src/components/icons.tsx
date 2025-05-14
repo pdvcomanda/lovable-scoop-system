@@ -1,4 +1,3 @@
-
 import {
   AlertCircle,
   ArrowRight,
@@ -25,6 +24,7 @@ import {
   Twitter,
   User,
   X,
+  Printer,
   type LucideIcon,
 } from "lucide-react"
 
@@ -55,6 +55,7 @@ export const Icons = {
   moon: Moon,
   laptop: Laptop,
   cart: ShoppingCart,
+  printer: Printer,
   gitHub: ({ ...props }: LucideProps) => (
     <svg
       aria-hidden="true"

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -23,7 +22,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, CreditCard, Pencil, Trash, Wallet, CurrencyCircleDollar } from "lucide-react";
+import { Plus, CreditCard, Pencil, Trash, Wallet } from "lucide-react";
+import { CurrencyCircleDollar } from "@/components/icons/CurrencyCircleDollar";
 
 type PaymentMethod = {
   id: string;

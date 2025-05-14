@@ -14,6 +14,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { EmployeeForm } from "@/components/EmployeeForm";
 import { toast } from "@/components/ui/sonner";
