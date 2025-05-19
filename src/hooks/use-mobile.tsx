@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 
-export function useIsMobile(): { isMobile: boolean } {
+export function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -22,7 +22,7 @@ export function useIsMobile(): { isMobile: boolean } {
     };
   }, []);
 
-  return { isMobile };
+  return isMobile;
 }
 
 // Alias para compatibilidade com código existente
