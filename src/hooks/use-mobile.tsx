@@ -22,7 +22,7 @@ export function useIsMobile() {
     };
   }, []);
 
-  return { isMobile };
+  return isMobile;
 }
 
 // Alias para compatibilidade com código existente

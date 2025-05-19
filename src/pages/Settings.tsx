@@ -25,6 +25,7 @@ import { BackupSettings } from '@/components/settings/BackupSettings';
 import { SecuritySettings } from '@/components/settings/SecuritySettings';
 import { NotificationsSettings } from '@/components/settings/NotificationsSettings';
 import { FiscalSettings } from '@/components/settings/FiscalSettings';
+import { PrinterSettings } from '@/components/settings/PrinterSettings';
 
 const Settings = () => {
   const location = useLocation();
@@ -49,12 +50,15 @@ const Settings = () => {
   return (
     <MainLayout title="Configurações">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 h-auto">
+        <TabsList className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-9 h-auto">
           <TabsTrigger value="general" className="py-2 gap-2">
             <Store className="h-4 w-4" /> Geral
           </TabsTrigger>
+          <TabsTrigger value="printers" className="py-2 gap-2">
+            <Printer className="h-4 w-4" /> Impressoras
+          </TabsTrigger>
           <TabsTrigger value="devices" className="py-2 gap-2">
-            <Printer className="h-4 w-4" /> Dispositivos
+            <Scale className="h-4 w-4" /> Dispositivos
           </TabsTrigger>
           <TabsTrigger value="payment" className="py-2 gap-2">
             <CreditCard className="h-4 w-4" /> Pagamentos
@@ -80,6 +84,10 @@ const Settings = () => {
           <Card className="p-6">
             <GeneralSettings />
           </Card>
+        </TabsContent>
+        
+        <TabsContent value="printers">
+          <PrinterSettings />
         </TabsContent>
         
         <TabsContent value="devices" className="space-y-4">
