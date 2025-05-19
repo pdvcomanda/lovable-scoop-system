@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LogOut, Settings, User } from 'lucide-react';
+import { LogOut, Settings, User, Buildings } from 'lucide-react';
 
 export function UserMenu() {
   const { user, profile, signOut } = useAuth();
@@ -27,6 +27,10 @@ export function UserMenu() {
 
   const handleNavigateToSettings = () => {
     navigate('/settings');
+  };
+
+  const handleNavigateToTenants = () => {
+    navigate('/admin/tenants');
   };
 
   const handleSignOut = async () => {
@@ -68,6 +72,18 @@ export function UserMenu() {
           <Settings className="mr-2 h-4 w-4" />
           <span>Configurações</span>
         </DropdownMenuItem>
+        
+        {/* Opção de administração de tenants apenas para superadmin */}
+        {profile?.is_superadmin && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleNavigateToTenants}>
+              <Buildings className="mr-2 h-4 w-4" />
+              <span>Gerenciar Lojas</span>
+            </DropdownMenuItem>
+          </>
+        )}
+        
         <DropdownMenuSeparator />
         <DropdownMenuItem 
           className="text-red-600"

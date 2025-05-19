@@ -20,6 +20,11 @@ import Users from "./pages/Users";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import TenantsManagement from "./pages/Admin/TenantsManagement";
+import TenantDetail from "./pages/Admin/TenantDetail";
+
+// Componentes de rotas protegidas com base em papéis
+import { SuperAdminRoute } from "./components/auth/SuperAdminRoute";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +80,18 @@ const App = () => (
               <ProtectedRoute>
                 <Profile />
               </ProtectedRoute>
+            } />
+            
+            {/* Rotas de SuperAdmin */}
+            <Route path="/admin/tenants" element={
+              <SuperAdminRoute>
+                <TenantsManagement />
+              </SuperAdminRoute>
+            } />
+            <Route path="/admin/tenants/:id" element={
+              <SuperAdminRoute>
+                <TenantDetail />
+              </SuperAdminRoute>
             } />
             
             {/* Redirecionamento da página inicial para o dashboard */}
