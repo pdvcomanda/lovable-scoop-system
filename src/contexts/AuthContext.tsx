@@ -9,8 +9,6 @@ interface Profile {
   id: string;
   full_name: string | null;
   role: string;
-  is_superadmin: boolean | null;
-  tenant_id: string | null;
 }
 
 type AuthContextType = {
@@ -20,7 +18,6 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
-  updatePassword: (newPassword: string) => Promise<void>;
   loading: boolean;
 };
 
@@ -78,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, role, is_superadmin, tenant_id')
+        .select('id, full_name, role')
         .eq('id', userId)
         .single();
 
@@ -134,20 +131,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updatePassword = async (newPassword: string) => {
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-      
-      if (error) throw error;
-      toast.success('Senha atualizada com sucesso!');
-    } catch (error: any) {
-      toast.error(`Erro ao atualizar senha: ${error.message}`);
-      throw error;
-    }
-  };
-
   const value = {
     session,
     user,
@@ -155,7 +138,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signUp,
     signOut,
-    updatePassword,
     loading,
   };
 

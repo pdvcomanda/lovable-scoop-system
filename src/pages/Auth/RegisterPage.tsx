@@ -54,11 +54,8 @@ const RegisterPage = () => {
     <div className="flex h-screen items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-3xl font-bold text-blue-600">Ice Flow PDV</CardTitle>
-          <CardDescription className="text-lg">
-            O smarthub ideal para açaiterias e sorveterias
-          </CardDescription>
-          <CardDescription className="mt-4">
+          <CardTitle className="text-2xl font-bold">Criar Conta</CardTitle>
+          <CardDescription>
             Preencha os dados abaixo para criar sua conta
           </CardDescription>
         </CardHeader>
