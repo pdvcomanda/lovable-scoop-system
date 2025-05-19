@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { WhatsApp, X, ArrowLeft } from 'lucide-react';
+import { MessageSquare, X, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WhatsAppChatWindow } from './WhatsAppChatWindow';
 import { WhatsAppContactList } from './WhatsAppContactList';
@@ -21,7 +20,7 @@ interface Customer {
 }
 
 export const WhatsAppChat = () => {
-  const isMobile = useMobile();
+  const { isMobile } = useMobile();
   const [isOpen, setIsOpen] = useState(false);
   const [activeChat, setActiveChat] = useState<Customer | null>(null);
   const [totalUnread, setTotalUnread] = useState(0);
@@ -116,7 +115,7 @@ export const WhatsAppChat = () => {
                       onClick={() => setShowSettings(true)}
                       className="ml-auto mr-1"
                     >
-                      <WhatsApp className="h-5 w-5" />
+                      <MessageSquare className="h-5 w-5" />
                     </Button>
                     <Button 
                       variant="ghost" 
@@ -213,7 +212,7 @@ export const WhatsAppChat = () => {
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-                  <WhatsApp className="h-16 w-16 text-muted-foreground mb-4" />
+                  <MessageSquare className="h-16 w-16 text-muted-foreground mb-4" />
                   <h3 className="text-xl font-medium mb-2">Selecione uma conversa</h3>
                   <p className="text-muted-foreground">
                     Escolha uma conversa na lista à esquerda para começar
@@ -266,7 +265,7 @@ const WhatsAppButton = ({ unreadCount, onClick }: WhatsAppButtonProps) => {
         "transition-all duration-300 ease-in-out"
       )}
     >
-      <WhatsApp className="h-6 w-6" />
+      <MessageSquare className="h-6 w-6" />
       {unreadCount > 0 && (
         <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
           {unreadCount > 9 ? '9+' : unreadCount}
