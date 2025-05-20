@@ -7,18 +7,29 @@ import { WhatsAppContactList } from "./WhatsAppContactList";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 
+// Define the Customer interface to match what's used in WhatsAppContactList
+interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  unreadCount: number;
+  lastMessage?: string;
+  lastMessageTime?: Date;
+  avatar?: string;
+}
+
 export function WhatsAppChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState<"contacts" | "chat">("contacts");
-  const [activeContact, setActiveContact] = useState<string | null>(null);
+  const [activeContact, setActiveContact] = useState<Customer | null>(null);
   
   const { user } = useAuth();
   
   // Only show for authenticated users
   if (!user) return null;
   
-  const handleOpenChat = (contactId: string) => {
-    setActiveContact(contactId);
+  const handleOpenChat = (customer: Customer) => {
+    setActiveContact(customer);
     setView("chat");
   };
   
@@ -62,12 +73,12 @@ export function WhatsAppChat() {
             <WhatsAppContactList onSelectChat={handleOpenChat} />
           ) : (
             <WhatsAppChatWindow 
-              activeChat={{ 
-                id: activeContact || '', 
+              activeChat={activeContact || { 
+                id: '', 
                 name: '', 
                 phone: '', 
                 unreadCount: 0 
-              }} 
+              }}
               onClose={() => setIsOpen(false)} 
               onBack={handleBackToContacts} 
             />
