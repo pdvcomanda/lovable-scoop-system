@@ -13,7 +13,8 @@ import {
   Lock, 
   BellRing, 
   Shield,
-  Link 
+  Link,
+  MessageSquare
 } from 'lucide-react';
 
 // Import settings components

@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { UserMenu } from './UserMenu';
-import { Menu, MessageSquare } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { useMobile } from '@/hooks/use-mobile';
 
 interface HeaderProps {

@@ -59,9 +59,18 @@ export function WhatsAppChat() {
           
           {/* Content */}
           {view === "contacts" ? (
-            <WhatsAppContactList onSelectContact={handleOpenChat} />
+            <WhatsAppContactList onSelectChat={handleOpenChat} />
           ) : (
-            <WhatsAppChatWindow contactId={activeContact!} />
+            <WhatsAppChatWindow 
+              activeChat={{ 
+                id: activeContact || '', 
+                name: '', 
+                phone: '', 
+                unreadCount: 0 
+              }} 
+              onClose={() => setIsOpen(false)} 
+              onBack={handleBackToContacts} 
+            />
           )}
         </div>
       ) : (
