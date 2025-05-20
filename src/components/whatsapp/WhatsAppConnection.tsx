@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { QrCode, RefreshCw, Smartphone, Check, X } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { QrCode, RefreshCw, Smartphone, Check, X, MessageSquare } from 'lucide-react';
 
 interface WhatsAppStatus {
   status: 'disconnected' | 'connecting' | 'connected' | 'authenticated';
@@ -23,41 +24,132 @@ export function WhatsAppConnection() {
   });
   const [configTab, setConfigTab] = useState('connection');
   const [botSettings, setBotSettings] = useState({
-    welcomeMessage: 'Olá! Bem-vindo à Açaí Delícia. Como posso ajudar?',
+    welcomeMessage: 'Olá! Bem-vindo à nossa loja. Como posso ajudar?',
     enableAutoReply: true,
     enableCatalog: true,
     enablePayment: true,
     autoReplyDelay: 10,
+    selectedAI: 'gpt', // 'gpt', 'copilot', 'gemini', 'none'
   });
   
-  // Simular ciclo de conexão do WhatsApp
+  // WebSocket reference for WhatsApp connection
+  const wsRef = useRef<WebSocket | null>(null);
+  
+  // Create connection with WhatsApp Web
   const startWhatsAppConnection = () => {
-    // Resetar estado
-    setStatus({ status: 'connecting' });
-    
-    // Simular geração do QR Code
+    try {
+      // Reset state
+      setStatus({ status: 'connecting' });
+      
+      // Initialize connection to WhatsApp Web
+      if (typeof window !== 'undefined' && 'WebSocket' in window) {
+        // In a real app, we would connect to the WhatsApp Web WebSocket API
+        // This is a simplified example using a mock server
+        const wsUrl = process.env.NODE_ENV === 'production' 
+          ? 'wss://api.whatsapp-web.com/v1/connect'
+          : 'wss://mock-whatsapp-api.example.com';
+          
+        const ws = new WebSocket(wsUrl);
+        
+        ws.onopen = () => {
+          console.log('WebSocket connection established');
+          
+          // In real implementation, we would authenticate here
+          // For demo, we'll simulate QR code generation
+          setTimeout(() => {
+            setStatus({
+              status: 'connecting',
+              qrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=whatsapp-connect-exemplo',
+            });
+          }, 1000);
+        };
+        
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            
+            if (data.type === 'connection_success') {
+              setStatus({
+                status: 'authenticated',
+                phoneNumber: data.phoneNumber,
+              });
+              toast.success("WhatsApp conectado com sucesso!");
+              
+              // Save session
+              localStorage.setItem('whatsappSession', JSON.stringify({
+                phoneNumber: data.phoneNumber,
+                timestamp: new Date().getTime(),
+              }));
+            }
+            
+            if (data.type === 'qr_code') {
+              setStatus({
+                status: 'connecting',
+                qrCode: data.qrCode,
+              });
+            }
+            
+          } catch (e) {
+            console.error('Error parsing WebSocket message', e);
+          }
+        };
+        
+        ws.onerror = (error) => {
+          console.error('WebSocket error', error);
+          toast.error("Erro na conexão com WhatsApp. Tente novamente.");
+          setStatus({ status: 'disconnected' });
+        };
+        
+        ws.onclose = () => {
+          console.log('WebSocket connection closed');
+          // Only update status if not already authenticated
+          if (status.status !== 'authenticated') {
+            setStatus({ status: 'disconnected' });
+          }
+        };
+        
+        wsRef.current = ws;
+        
+        // For demo purposes, simulate success after a timeout
+        if (process.env.NODE_ENV !== 'production') {
+          simulateWhatsAppConnection();
+        }
+      } else {
+        toast.error("WebSockets não são suportados neste navegador.");
+        setStatus({ status: 'disconnected' });
+      }
+    } catch (error) {
+      console.error('Error starting WhatsApp connection', error);
+      toast.error("Erro ao iniciar conexão com WhatsApp.");
+      setStatus({ status: 'disconnected' });
+    }
+  };
+  
+  // Simulate WhatsApp connection (for demo only)
+  const simulateWhatsAppConnection = () => {
     setTimeout(() => {
       setStatus({
-        status: 'connecting',
-        qrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=whatsapp-connect-exemplo',
+        status: 'authenticated',
+        phoneNumber: '+55 11 98765-4321',
       });
       
-      // Simular conexão bem-sucedida após 10 segundos
-      const timer = setTimeout(() => {
-        setStatus({
-          status: 'authenticated',
-          phoneNumber: '+55 11 98765-4321',
-        });
-        toast.success("WhatsApp conectado com sucesso!");
-      }, 10000);
+      toast.success("WhatsApp conectado com sucesso!");
       
-      // Apenas para demonstração, permitir cancelar a conexão
-      return () => clearTimeout(timer);
-    }, 2000);
+      localStorage.setItem('whatsappSession', JSON.stringify({
+        phoneNumber: '+55 11 98765-4321',
+        timestamp: new Date().getTime(),
+      }));
+    }, 10000);
   };
   
   const disconnectWhatsApp = () => {
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    
     setStatus({ status: 'disconnected' });
+    localStorage.removeItem('whatsappSession');
     toast.info("WhatsApp desconectado");
   };
   
@@ -67,7 +159,7 @@ export function WhatsAppConnection() {
       [key]: value
     }));
     
-    // Salvar configurações
+    // Save settings
     localStorage.setItem('whatsappBotSettings', JSON.stringify({
       ...botSettings,
       [key]: value
@@ -76,37 +168,46 @@ export function WhatsAppConnection() {
     toast.success("Configuração salva");
   };
   
-  // Carregar configurações salvas
+  // Load saved settings
   useEffect(() => {
     const savedSettings = localStorage.getItem('whatsappBotSettings');
     if (savedSettings) {
       setBotSettings(JSON.parse(savedSettings));
     }
     
-    // Verificar se há uma sessão salva
+    // Check for existing session
     const savedSession = localStorage.getItem('whatsappSession');
     if (savedSession) {
       try {
         const sessionData = JSON.parse(savedSession);
-        setStatus({
-          status: 'authenticated',
-          phoneNumber: sessionData.phoneNumber,
-        });
+        
+        // Check if session is not expired (24 hours max)
+        const now = new Date().getTime();
+        const sessionTime = sessionData.timestamp;
+        
+        if (now - sessionTime < 24 * 60 * 60 * 1000) {
+          setStatus({
+            status: 'authenticated',
+            phoneNumber: sessionData.phoneNumber,
+          });
+        } else {
+          // Session expired
+          localStorage.removeItem('whatsappSession');
+        }
       } catch (e) {
-        // Sessão inválida, ignorar
+        // Invalid session, ignore
+        localStorage.removeItem('whatsappSession');
       }
     }
+    
+    // Cleanup WebSocket connection on unmount
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
   }, []);
-  
-  // Salvar sessão quando autenticado
-  useEffect(() => {
-    if (status.status === 'authenticated' && status.phoneNumber) {
-      localStorage.setItem('whatsappSession', JSON.stringify({
-        phoneNumber: status.phoneNumber,
-        timestamp: new Date().getTime(),
-      }));
-    }
-  }, [status]);
 
   return (
     <Card>
@@ -122,7 +223,7 @@ export function WhatsAppConnection() {
           
           <TabsContent value="connection">
             <div className="space-y-6">
-              {/* Estado da conexão */}
+              {/* Connection status */}
               <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
                 <div className={`h-3 w-3 rounded-full ${status.status === 'authenticated' ? 'bg-green-500' : 'bg-orange-500'}`}></div>
                 <div>
@@ -139,7 +240,7 @@ export function WhatsAppConnection() {
                 )}
               </div>
               
-              {/* Área do QR Code */}
+              {/* QR Code area */}
               <div className="flex flex-col items-center justify-center py-8">
                 {status.status === 'disconnected' && (
                   <div className="text-center">
@@ -207,7 +308,7 @@ export function WhatsAppConnection() {
                 )}
               </div>
               
-              {/* Instruções e requisitos */}
+              {/* Instructions and requirements */}
               <Alert>
                 <AlertDescription>
                   <h4 className="font-medium mb-2">Requisitos para uso da integração</h4>
@@ -234,6 +335,27 @@ export function WhatsAppConnection() {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Ativar bot para responder automaticamente as mensagens dos clientes
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="selectedAI">Modelo de IA para respostas</Label>
+                <Select 
+                  value={botSettings.selectedAI}
+                  onValueChange={(value) => handleBotSettingChange('selectedAI', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um modelo de IA" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gpt">OpenAI GPT</SelectItem>
+                    <SelectItem value="copilot">Microsoft Copilot</SelectItem>
+                    <SelectItem value="gemini">Google Gemini</SelectItem>
+                    <SelectItem value="none">Não usar IA (apenas scripts)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  Escolha qual modelo de IA será usado para gerar respostas automáticas
                 </p>
               </div>
               
@@ -321,6 +443,80 @@ export function WhatsAppConnection() {
                   ))}
                 </div>
               </div>
+              
+              {/* AI model configuration */}
+              {botSettings.selectedAI !== 'none' && (
+                <div className="p-4 border rounded-md">
+                  <h3 className="font-medium mb-2">Configuração da {
+                    botSettings.selectedAI === 'gpt' ? 'OpenAI GPT' : 
+                    botSettings.selectedAI === 'copilot' ? 'Microsoft Copilot' : 
+                    'Google Gemini'
+                  }</h3>
+                  
+                  <div className="space-y-3 mt-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="aiApiKey">API Key</Label>
+                      <Input 
+                        id="aiApiKey"
+                        type="password"
+                        placeholder={`Digite sua ${botSettings.selectedAI.toUpperCase()} API Key`}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        {botSettings.selectedAI === 'gpt' && 'Disponível em https://platform.openai.com/api-keys'}
+                        {botSettings.selectedAI === 'copilot' && 'Disponível no portal da Microsoft Azure'}
+                        {botSettings.selectedAI === 'gemini' && 'Disponível em https://aistudio.google.com/'}
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="aiPrompt">Prompt da IA</Label>
+                      <Textarea 
+                        id="aiPrompt"
+                        placeholder="Defina o comportamento e personalidade do atendente virtual"
+                        rows={3}
+                        defaultValue={`Você é um atendente virtual de uma loja. Seja cordial, direto e útil. Responda perguntas sobre produtos, horários de funcionamento e formas de pagamento.`}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Modelo</Label>
+                      <Select defaultValue={
+                        botSettings.selectedAI === 'gpt' ? 'gpt-4o-mini' : 
+                        botSettings.selectedAI === 'copilot' ? 'copilot-pro' : 
+                        'gemini-pro'
+                      }>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {botSettings.selectedAI === 'gpt' && (
+                            <>
+                              <SelectItem value="gpt-4o-mini">GPT-4o Mini (Econômico)</SelectItem>
+                              <SelectItem value="gpt-4o">GPT-4o (Recomendado)</SelectItem>
+                            </>
+                          )}
+                          
+                          {botSettings.selectedAI === 'copilot' && (
+                            <>
+                              <SelectItem value="copilot-lite">Copilot Lite</SelectItem>
+                              <SelectItem value="copilot-pro">Copilot Pro</SelectItem>
+                            </>
+                          )}
+                          
+                          {botSettings.selectedAI === 'gemini' && (
+                            <>
+                              <SelectItem value="gemini-pro">Gemini Pro</SelectItem>
+                              <SelectItem value="gemini-pro-vision">Gemini Pro Vision</SelectItem>
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <Button className="w-full mt-2">Salvar Configurações da IA</Button>
+                  </div>
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>

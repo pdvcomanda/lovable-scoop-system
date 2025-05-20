@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -13,10 +12,11 @@ import {
   Database, 
   Lock, 
   BellRing, 
-  Shield 
+  Shield,
+  Link 
 } from 'lucide-react';
 
-// Importação dos componentes de configuração
+// Import settings components
 import { GeneralSettings } from '@/components/settings/GeneralSettings';
 import { DeviceSettings } from '@/components/settings/DeviceSettings';
 import { PaymentSettings } from '@/components/settings/PaymentSettings';
@@ -26,13 +26,15 @@ import { SecuritySettings } from '@/components/settings/SecuritySettings';
 import { NotificationsSettings } from '@/components/settings/NotificationsSettings';
 import { FiscalSettings } from '@/components/settings/FiscalSettings';
 import { PrinterSettings } from '@/components/settings/PrinterSettings';
+import { APIIntegrationSettings } from '@/components/settings/APIIntegrationSettings';
+import { WhatsAppConnection } from '@/components/whatsapp/WhatsAppConnection';
 
 const Settings = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("general");
   
-  // Extrair a aba da URL, se houver
+  // Extract tab from URL if present
   useEffect(() => {
     const query = new URLSearchParams(location.search);
     const tab = query.get('tab');
@@ -41,7 +43,7 @@ const Settings = () => {
     }
   }, [location.search]);
   
-  // Atualizar URL quando a aba muda
+  // Update URL when tab changes
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     navigate(`/settings?tab=${value}`, { replace: true });
@@ -50,7 +52,7 @@ const Settings = () => {
   return (
     <MainLayout title="Configurações">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-        <TabsList className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-9 h-auto">
+        <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-11 h-auto">
           <TabsTrigger value="general" className="py-2 gap-2">
             <Store className="h-4 w-4" /> Geral
           </TabsTrigger>
@@ -78,12 +80,16 @@ const Settings = () => {
           <TabsTrigger value="fiscal" className="py-2 gap-2">
             <Shield className="h-4 w-4" /> Fiscal
           </TabsTrigger>
+          <TabsTrigger value="api" className="py-2 gap-2">
+            <Link className="h-4 w-4" /> API
+          </TabsTrigger>
+          <TabsTrigger value="whatsapp" className="py-2 gap-2">
+            <MessageSquare className="h-4 w-4" /> WhatsApp
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="general" className="space-y-4">
-          <Card className="p-6">
-            <GeneralSettings />
-          </Card>
+          <GeneralSettings />
         </TabsContent>
         
         <TabsContent value="printers">
@@ -116,6 +122,14 @@ const Settings = () => {
         
         <TabsContent value="fiscal">
           <FiscalSettings />
+        </TabsContent>
+        
+        <TabsContent value="api">
+          <APIIntegrationSettings />
+        </TabsContent>
+        
+        <TabsContent value="whatsapp">
+          <WhatsAppConnection />
         </TabsContent>
       </Tabs>
     </MainLayout>

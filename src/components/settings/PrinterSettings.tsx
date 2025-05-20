@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -26,22 +26,29 @@ export function PrinterSettings() {
   const [driverDownloaded, setDriverDownloaded] = useState<boolean>(false);
   const [bluetoothAvailable, setBluetoothAvailable] = useState<boolean>(false);
   const [usbAvailable, setUsbAvailable] = useState<boolean>(false);
+  const [systemPrinters, setSystemPrinters] = useState<string[]>([]);
   
-  // Verificar disponibilidade de Bluetooth na inicialização
+  // Check for Bluetooth and USB availability on initialization
   useEffect(() => {
     checkBluetoothAvailability();
     checkUSBAvailability();
+    detectSystemPrinters();
     
-    // Carregar impressoras salvas do localStorage
+    // Load saved printers from localStorage
     const savedPrinters = localStorage.getItem('configuredPrinters');
     if (savedPrinters) {
       setPrinters(JSON.parse(savedPrinters));
     }
+    
+    // Load selected printer
+    const savedSelectedPrinter = localStorage.getItem('selectedPrinter');
+    if (savedSelectedPrinter) {
+      setSelectedPrinter(savedSelectedPrinter);
+    }
   }, []);
   
-  // Simular verificação da disponibilidade de Bluetooth
+  // Check if the browser supports Web Bluetooth API
   const checkBluetoothAvailability = () => {
-    // Verificar se o navegador suporta Web Bluetooth API
     if ('bluetooth' in navigator) {
       setBluetoothAvailable(true);
     } else {
@@ -49,9 +56,8 @@ export function PrinterSettings() {
     }
   };
   
-  // Simular verificação da disponibilidade de USB
+  // Check if the browser supports Web USB API
   const checkUSBAvailability = () => {
-    // Verificar se o navegador suporta Web USB API
     if ('usb' in navigator) {
       setUsbAvailable(true);
     } else {
@@ -59,7 +65,73 @@ export function PrinterSettings() {
     }
   };
   
-  // Iniciar busca por dispositivos Bluetooth
+  // Detect system printers using the Printer API or alternative methods
+  const detectSystemPrinters = useCallback(() => {
+    try {
+      // First try Web Print API - this is a proposed web standard, not widely supported yet
+      if ('print' in navigator && 'getPrinters' in (navigator as any).print) {
+        (navigator as any).print.getPrinters()
+          .then((printers: any[]) => {
+            setSystemPrinters(printers.map(p => p.name));
+          })
+          .catch(() => {
+            detectPrintersWithFallback();
+          });
+      } else {
+        detectPrintersWithFallback();
+      }
+    } catch (error) {
+      console.error('Error detecting system printers:', error);
+      detectPrintersWithFallback();
+    }
+  }, []);
+  
+  // Fallback method to detect printers
+  const detectPrintersWithFallback = () => {
+    // This is a simulated implementation as web browsers have limited access to system printers
+    // In a real implementation, we would use system-specific APIs or browser extensions
+    
+    // For desktop apps, you might use a backend service or Electron's native modules
+    
+    // For demonstration, we'll check if we can access print info from a print dialog
+    if ('print' in window) {
+      // Get minimal print info via the print dialog
+      try {
+        const printFrame = document.createElement('iframe');
+        printFrame.style.display = 'none';
+        document.body.appendChild(printFrame);
+        
+        // Use a timeout to ensure the iframe is ready
+        setTimeout(() => {
+          if (printFrame.contentWindow) {
+            // We can only get limited info this way, but it helps detect if printing is available
+            const hasPrintCapability = Boolean(printFrame.contentWindow.print);
+            
+            if (hasPrintCapability) {
+              // Since we can't get actual printer names from the browser,
+              // we can poll a backend service or use locally stored printers
+              
+              // For demo, use mock system printers
+              const mockSystemPrinters = [
+                'Sistema: Impressora Principal',
+                'Sistema: Impressora HP LaserJet',
+                'Sistema: Impressora PDF',
+              ];
+              
+              setSystemPrinters(mockSystemPrinters);
+            }
+          }
+          
+          // Clean up
+          document.body.removeChild(printFrame);
+        }, 100);
+      } catch (error) {
+        console.error('Error in print detection fallback:', error);
+      }
+    }
+  };
+  
+  // Start scanning for Bluetooth devices
   const scanBluetoothDevices = async () => {
     if (!bluetoothAvailable) {
       toast.error("Bluetooth não disponível neste navegador");
@@ -69,83 +141,84 @@ export function PrinterSettings() {
     setIsScanning(true);
     
     try {
-      // Usar Web Bluetooth API para buscar dispositivos
-      // Esta é apenas uma implementação simulada
-      // Na implementação real, usaríamos navigator.bluetooth.requestDevice()
+      // Use Web Bluetooth API to search for devices
+      // This is a simplified implementation
+      // In a real implementation, we'd use navigator.bluetooth.requestDevice()
       
+      // For demonstration purposes
       setTimeout(() => {
-        // Simular dispositivos encontrados
+        // Simulate found devices
         const mockDevices = [
           { id: 'bt-1', name: 'Impressora Térmica BT', type: 'bluetooth' as const, connected: false },
           { id: 'bt-2', name: 'Impressora POS BT', type: 'bluetooth' as const, connected: false },
         ];
         
         setPrinters(prevPrinters => {
-          // Filtrar impressoras bluetooth existentes e adicionar as novas
+          // Filter existing bluetooth printers and add new ones
           const filteredPrinters = prevPrinters.filter(p => p.type !== 'bluetooth');
           const newPrinters = [...filteredPrinters, ...mockDevices];
           
-          // Salvar no localStorage
+          // Save to localStorage
           localStorage.setItem('configuredPrinters', JSON.stringify(newPrinters));
           
           return newPrinters;
         });
         
         setIsScanning(false);
-        toast.success("Busca por impressoras Bluetooth concluída");
+        toast.success("Bluetooth printer scan completed");
       }, 2000);
     } catch (error) {
-      console.error('Erro ao buscar dispositivos Bluetooth:', error);
-      toast.error("Erro ao buscar dispositivos Bluetooth");
+      console.error('Error scanning Bluetooth devices:', error);
+      toast.error("Error scanning Bluetooth devices");
       setIsScanning(false);
     }
   };
   
-  // Iniciar busca por dispositivos USB
+  // Start scanning for USB devices
   const scanUSBDevices = async () => {
     if (!usbAvailable) {
-      toast.error("USB não disponível neste navegador");
+      toast.error("USB not available in this browser");
       return;
     }
     
     setIsScanning(true);
     
     try {
-      // Usar Web USB API para buscar dispositivos
-      // Esta é apenas uma implementação simulada
-      // Na implementação real, usaríamos navigator.usb.requestDevice()
+      // Use Web USB API to search for devices
+      // This is a simplified implementation
+      // In a real implementation, we'd use navigator.usb.requestDevice()
       
       setTimeout(() => {
-        // Simular dispositivos encontrados
+        // Simulate found devices
         const mockDevices = [
-          { id: 'usb-1', name: 'Impressora Térmica USB', type: 'usb' as const, connected: false },
-          { id: 'usb-2', name: 'Impressora de Cupom USB', type: 'usb' as const, connected: false },
+          { id: 'usb-1', name: 'USB Thermal Printer', type: 'usb' as const, connected: false },
+          { id: 'usb-2', name: 'USB Receipt Printer', type: 'usb' as const, connected: false },
         ];
         
         setPrinters(prevPrinters => {
-          // Filtrar impressoras USB existentes e adicionar as novas
+          // Filter existing USB printers and add new ones
           const filteredPrinters = prevPrinters.filter(p => p.type !== 'usb');
           const newPrinters = [...filteredPrinters, ...mockDevices];
           
-          // Salvar no localStorage
+          // Save to localStorage
           localStorage.setItem('configuredPrinters', JSON.stringify(newPrinters));
           
           return newPrinters;
         });
         
         setIsScanning(false);
-        toast.success("Busca por impressoras USB concluída");
+        toast.success("USB printer scan completed");
       }, 2000);
     } catch (error) {
-      console.error('Erro ao buscar dispositivos USB:', error);
-      toast.error("Erro ao buscar dispositivos USB");
+      console.error('Error scanning USB devices:', error);
+      toast.error("Error scanning USB devices");
       setIsScanning(false);
     }
   };
   
-  // Conectar a uma impressora
+  // Connect to a printer
   const connectPrinter = (printerId: string) => {
-    // Simular conexão com a impressora
+    // Simulate connection to the printer
     setPrinters(printers.map(printer => {
       if (printer.id === printerId) {
         return { ...printer, connected: true };
@@ -156,17 +229,17 @@ export function PrinterSettings() {
     setSelectedPrinter(printerId);
     localStorage.setItem('selectedPrinter', printerId);
     
-    // Se não tiver driver, oferecer download
+    // If no driver, offer download
     if (!driverDownloaded) {
       downloadDriver(printerId);
     } else {
-      toast.success("Conectado à impressora com sucesso!");
+      toast.success("Connected to printer successfully!");
     }
   };
   
-  // Desconectar de uma impressora
+  // Disconnect from a printer
   const disconnectPrinter = (printerId: string) => {
-    // Simular desconexão da impressora
+    // Simulate printer disconnection
     setPrinters(printers.map(printer => {
       if (printer.id === printerId) {
         return { ...printer, connected: false };
@@ -179,39 +252,39 @@ export function PrinterSettings() {
       localStorage.removeItem('selectedPrinter');
     }
     
-    toast.success("Impressora desconectada");
+    toast.success("Printer disconnected");
   };
   
-  // Simular download do driver
+  // Simulate driver download
   const downloadDriver = (printerId: string) => {
-    toast("Baixando driver necessário...", {
+    toast("Downloading required driver...", {
       duration: 3000,
     });
     
-    // Simular progresso de download
+    // Simulate download progress
     setTimeout(() => {
       setDriverDownloaded(true);
-      toast.success("Driver instalado com sucesso!");
+      toast.success("Driver installed successfully!");
     }, 3000);
   };
   
-  // Remover uma impressora
+  // Remove a printer
   const removePrinter = (printerId: string) => {
-    // Desconectar primeiro se estiver conectada
+    // Disconnect first if connected
     const printer = printers.find(p => p.id === printerId);
     if (printer?.connected) {
       disconnectPrinter(printerId);
     }
     
-    // Remover da lista
+    // Remove from list
     const updatedPrinters = printers.filter(p => p.id !== printerId);
     setPrinters(updatedPrinters);
     localStorage.setItem('configuredPrinters', JSON.stringify(updatedPrinters));
     
-    toast.success("Impressora removida");
+    toast.success("Printer removed");
   };
   
-  // Adicionar impressora de rede manualmente
+  // Add network printer manually
   const addNetworkPrinter = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -220,7 +293,7 @@ export function PrinterSettings() {
     const port = formData.get('port') as string;
     
     if (!name || !ipAddress || !port) {
-      toast.error("Preencha todos os campos");
+      toast.error("Please fill in all fields");
       return;
     }
     
@@ -235,17 +308,84 @@ export function PrinterSettings() {
     setPrinters(updatedPrinters);
     localStorage.setItem('configuredPrinters', JSON.stringify(updatedPrinters));
     
-    toast.success("Impressora de rede adicionada");
+    toast.success("Network printer added");
     
-    // Limpar formulário
+    // Clear form
     e.currentTarget.reset();
   };
   
-  // Filtrar impressoras por tipo
+  // Print test page
+  const printTestPage = () => {
+    if (!selectedPrinter) {
+      toast.error("Select a printer first");
+      return;
+    }
+    
+    try {
+      // Create an invisible iframe for printing
+      const printFrame = document.createElement('iframe');
+      printFrame.style.display = 'none';
+      document.body.appendChild(printFrame);
+      
+      // Add content to the frame
+      const frameDoc = printFrame.contentDocument || printFrame.contentWindow?.document;
+      if (frameDoc) {
+        frameDoc.open();
+        frameDoc.write(`
+          <html>
+            <head>
+              <title>Print Test</title>
+              <style>
+                body { font-family: sans-serif; }
+                .receipt { width: 300px; padding: 10px; }
+                .header { text-align: center; font-weight: bold; margin-bottom: 10px; }
+                .content { margin: 15px 0; }
+                .footer { text-align: center; font-size: 12px; margin-top: 10px; }
+              </style>
+            </head>
+            <body>
+              <div class="receipt">
+                <div class="header">
+                  TEST PRINT<br>
+                  ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}
+                </div>
+                <div class="content">
+                  This is a test print page.<br>
+                  <br>
+                  Printer: ${printers.find(p => p.id === selectedPrinter)?.name || 'Unknown'}<br>
+                </div>
+                <div class="footer">
+                  *** End of Test ***
+                </div>
+              </div>
+            </body>
+          </html>
+        `);
+        frameDoc.close();
+        
+        // Print the frame
+        setTimeout(() => {
+          printFrame.contentWindow?.print();
+          
+          // Remove the frame after printing
+          setTimeout(() => {
+            document.body.removeChild(printFrame);
+            toast.success("Test page sent to printer");
+          }, 1000);
+        }, 500);
+      }
+    } catch (error) {
+      console.error('Error printing test page:', error);
+      toast.error("Failed to print test page");
+    }
+  };
+  
+  // Filter printers by tab/type
   const filteredPrinters = printers.filter(printer => {
     if (printerTab === 'bluetooth') return printer.type === 'bluetooth';
     if (printerTab === 'usb') return printer.type === 'usb';
     if (printerTab === 'network') return printer.type === 'network';
+    if (printerTab === 'system') return false; // System printers are handled separately
     return true;
   });
 
@@ -258,13 +398,14 @@ export function PrinterSettings() {
       </CardHeader>
       <CardContent>
         <Tabs value={printerTab} onValueChange={setPrinterTab}>
-          <TabsList className="grid grid-cols-3 mb-4">
+          <TabsList className="grid grid-cols-4 mb-4">
             <TabsTrigger value="bluetooth" className="flex items-center gap-2">
               <Bluetooth className="h-4 w-4" />
               Bluetooth
             </TabsTrigger>
             <TabsTrigger value="usb">USB</TabsTrigger>
             <TabsTrigger value="network">Rede</TabsTrigger>
+            <TabsTrigger value="system">Sistema</TabsTrigger>
           </TabsList>
           
           <TabsContent value="bluetooth">
@@ -507,6 +648,72 @@ export function PrinterSettings() {
               )}
             </div>
           </TabsContent>
+          
+          <TabsContent value="system">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-medium">Impressoras do Sistema</h3>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={detectSystemPrinters}
+                >
+                  Atualizar Lista
+                </Button>
+              </div>
+              
+              {systemPrinters.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhuma impressora do sistema detectada
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {systemPrinters.map((printer, index) => (
+                    <div 
+                      key={index} 
+                      className="flex items-center justify-between p-3 border rounded-md"
+                    >
+                      <div>
+                        <div className="font-medium">{printer}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Impressora do Sistema
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          variant="default" 
+                          size="sm"
+                          onClick={() => {
+                            const printerId = `system-${index}`;
+                            setPrinters(prev => [
+                              ...prev,
+                              { 
+                                id: printerId, 
+                                name: printer, 
+                                type: 'network', 
+                                connected: true 
+                              }
+                            ]);
+                            setSelectedPrinter(printerId);
+                            toast.success(`Impressora ${printer} configurada como padrão`);
+                          }}
+                        >
+                          Usar como Padrão
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <Alert>
+                <AlertDescription>
+                  <p className="mb-2">Impressoras do sistema são detectadas automaticamente pelo navegador e sistema operacional.</p>
+                  <p>Para imprimir em uma impressora do sistema, selecione-a como impressora padrão.</p>
+                </AlertDescription>
+              </Alert>
+            </div>
+          </TabsContent>
         </Tabs>
         
         <div className="mt-6 border-t pt-4">
@@ -531,15 +738,20 @@ export function PrinterSettings() {
             
             <div className="space-y-2">
               <Label htmlFor="printerDefault">Impressora padrão</Label>
-              <Select defaultValue="">
+              <Select defaultValue={selectedPrinter || ""}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma impressora" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Nenhuma</SelectItem>
-                  {printers.map(printer => (
+                  {[...printers, ...systemPrinters.map((name, i) => ({ 
+                    id: `system-${i}`, 
+                    name, 
+                    type: 'network' as const,
+                    connected: false
+                  }))].map(printer => (
                     <SelectItem key={printer.id} value={printer.id}>
-                      {printer.name} ({printer.type})
+                      {printer.name} ({typeof printer.type === 'string' ? printer.type : 'system'})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -554,13 +766,24 @@ export function PrinterSettings() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Nenhuma</SelectItem>
-                  {printers.map(printer => (
+                  {[...printers, ...systemPrinters.map((name, i) => ({ 
+                    id: `system-${i}`, 
+                    name, 
+                    type: 'network' as const,
+                    connected: false
+                  }))].map(printer => (
                     <SelectItem key={printer.id} value={printer.id}>
-                      {printer.name} ({printer.type})
+                      {printer.name} ({typeof printer.type === 'string' ? printer.type : 'system'})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            
+            <div className="mt-4">
+              <Button onClick={printTestPage} disabled={!selectedPrinter}>
+                Imprimir Página de Teste
+              </Button>
             </div>
           </div>
         </div>

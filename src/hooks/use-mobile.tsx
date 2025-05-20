@@ -5,25 +5,25 @@ export function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    // Função para verificar se é dispositivo móvel
+    // Function to check if it's a mobile device
     const checkIfMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
 
-    // Verificar inicialmente
+    // Initial check
     checkIfMobile();
 
-    // Adicionar listener para redimensionamento
+    // Add resize listener
     window.addEventListener('resize', checkIfMobile);
 
-    // Limpar listener na desmontagem
+    // Clean up listener on unmount
     return () => {
       window.removeEventListener('resize', checkIfMobile);
     };
   }, []);
 
-  return isMobile;
+  return { isMobile };
 }
 
-// Alias para compatibilidade com código existente
+// Alias for compatibility with existing code
 export const useMobile = useIsMobile;

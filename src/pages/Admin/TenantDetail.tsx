@@ -50,7 +50,7 @@ export default function TenantDetail() {
     slug: "",
   });
   
-  // Carregar dados do tenant
+  // Load tenant data
   useEffect(() => {
     async function fetchTenantData() {
       if (!id) return;
@@ -71,28 +71,42 @@ export default function TenantDetail() {
             slug: tenantData.slug
           });
           
-          // Buscar usuários associados a este tenant
-          const { data: usersData, error: usersError } = await supabase
+          // Fetch users associated with this tenant
+          // First get profiles with tenant_id
+          const { data: profilesData, error: profilesError } = await supabase
             .from("profiles")
-            .select("id, full_name, role, created_at, auth.users(email)")
+            .select("id, full_name, role, created_at, tenant_id")
             .eq("tenant_id", id);
             
-          if (usersError) throw usersError;
+          if (profilesError) throw profilesError;
           
-          if (usersData) {
-            const formattedUsers = usersData.map(user => ({
-              id: user.id,
-              email: user.users?.email || "",
-              role: user.role,
-              created_at: user.created_at,
-              full_name: user.full_name
-            }));
-            setUsers(formattedUsers);
+          if (profilesData && profilesData.length > 0) {
+            // Now get emails from auth.users table for these profiles
+            // We'll need to use a separate query for each profile
+            const usersData: TenantUser[] = [];
+            
+            for (const profile of profilesData) {
+              // Get the user data from auth.users - this would normally use a more efficient join
+              // but we're working within the limitations
+              const { data: userData } = await supabase.auth.admin.getUserById(profile.id);
+              
+              if (userData?.user) {
+                usersData.push({
+                  id: profile.id,
+                  email: userData.user.email || "",
+                  role: profile.role,
+                  created_at: profile.created_at,
+                  full_name: profile.full_name || ""
+                });
+              }
+            }
+            
+            setUsers(usersData);
           }
         }
       } catch (error) {
-        console.error("Erro ao carregar tenant:", error);
-        toast.error("Falha ao carregar dados da loja.");
+        console.error("Error loading tenant:", error);
+        toast.error("Failed to load store data.");
       } finally {
         setIsLoading(false);
       }
@@ -125,14 +139,14 @@ export default function TenantDetail() {
         
       if (error) throw error;
       
-      toast.success("Loja atualizada com sucesso!");
+      toast.success("Store updated successfully!");
       
-      // Atualizar o state
+      // Update state
       setTenant(prev => prev ? { ...prev, ...formData } : null);
       
     } catch (error) {
-      console.error("Erro ao atualizar tenant:", error);
-      toast.error("Falha ao atualizar dados da loja.");
+      console.error("Error updating tenant:", error);
+      toast.error("Failed to update store data.");
     } finally {
       setIsUpdating(false);
     }
@@ -144,9 +158,9 @@ export default function TenantDetail() {
     try {
       setIsUpdating(true);
       
-      // Verificar se há usuários associados
+      // Check if there are associated users
       if (users.length > 0) {
-        toast.error("Não é possível excluir uma loja com usuários. Remova os usuários primeiro.");
+        toast.error("Cannot delete a store with users. Remove the users first.");
         return;
       }
       
@@ -157,12 +171,12 @@ export default function TenantDetail() {
         
       if (error) throw error;
       
-      toast.success("Loja excluída com sucesso!");
+      toast.success("Store deleted successfully!");
       navigate("/admin/tenants");
       
     } catch (error) {
-      console.error("Erro ao excluir tenant:", error);
-      toast.error("Falha ao excluir a loja.");
+      console.error("Error deleting tenant:", error);
+      toast.error("Failed to delete the store.");
     } finally {
       setIsUpdating(false);
       setDeleteDialogOpen(false);
@@ -172,7 +186,7 @@ export default function TenantDetail() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p>Carregando...</p>
+        <p>Loading...</p>
       </div>
     );
   }
@@ -180,9 +194,9 @@ export default function TenantDetail() {
   if (!tenant) {
     return (
       <div className="flex flex-col items-center justify-center h-full">
-        <p className="text-lg mb-4">Loja não encontrada</p>
+        <p className="text-lg mb-4">Store not found</p>
         <Button onClick={() => navigate("/admin/tenants")}>
-          Voltar para a lista
+          Back to list
         </Button>
       </div>
     );
@@ -196,7 +210,7 @@ export default function TenantDetail() {
           variant="outline" 
           onClick={() => navigate("/admin/tenants")}
         >
-          Voltar para a lista
+          Back to list
         </Button>
       </div>
       
@@ -204,27 +218,27 @@ export default function TenantDetail() {
         <TabsList>
           <TabsTrigger value="details">
             <Building className="mr-2 h-4 w-4" />
-            Detalhes
+            Details
           </TabsTrigger>
           <TabsTrigger value="users">
             <Users className="mr-2 h-4 w-4" />
-            Usuários ({users.length})
+            Users ({users.length})
           </TabsTrigger>
           <TabsTrigger value="settings">
             <Settings className="mr-2 h-4 w-4" />
-            Configurações
+            Settings
           </TabsTrigger>
         </TabsList>
         
         <TabsContent value="details" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Informações da Loja</CardTitle>
+              <CardTitle>Store Information</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nome da Loja</Label>
+                  <Label htmlFor="name">Store Name</Label>
                   <Input 
                     id="name"
                     name="name"
@@ -234,18 +248,18 @@ export default function TenantDetail() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="slug">Identificador Único</Label>
+                  <Label htmlFor="slug">Unique Identifier</Label>
                   <Input 
                     id="slug"
                     name="slug"
                     value={formData.slug}
                     onChange={handleChange}
                     pattern="[a-z0-9-]+"
-                    title="Apenas letras minúsculas, números e hífens"
+                    title="Only lowercase letters, numbers and hyphens"
                     required
                   />
                   <p className="text-sm text-muted-foreground">
-                    Identificador único usado para URLs e banco de dados
+                    Unique identifier used for URLs and database
                   </p>
                 </div>
                 <div className="pt-2">
@@ -253,7 +267,7 @@ export default function TenantDetail() {
                     type="submit" 
                     disabled={isUpdating}
                   >
-                    {isUpdating ? 'Salvando...' : 'Salvar Alterações'}
+                    {isUpdating ? 'Saving...' : 'Save Changes'}
                   </Button>
                 </div>
               </form>
@@ -264,19 +278,19 @@ export default function TenantDetail() {
         <TabsContent value="users" className="space-y-4 mt-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Usuários da Loja</CardTitle>
+              <CardTitle>Store Users</CardTitle>
               <Button 
                 variant="outline"
                 size="sm"
                 onClick={() => navigate(`/admin/tenants/${tenant.id}/add-user`)}
               >
-                Adicionar Usuário
+                Add User
               </Button>
             </CardHeader>
             <CardContent>
               {users.length === 0 ? (
                 <p className="text-center py-8 text-muted-foreground">
-                  Nenhum usuário cadastrado para esta loja.
+                  No users registered for this store.
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -290,7 +304,7 @@ export default function TenantDetail() {
                         <p className="text-sm text-muted-foreground">{user.email}</p>
                         <p className="text-xs mt-1">
                           <span className="bg-muted px-2 py-0.5 rounded">
-                            {user.role === 'admin' ? 'Administrador' : 'Funcionário'}
+                            {user.role === 'admin' ? 'Administrator' : 'Employee'}
                           </span>
                         </p>
                       </div>
@@ -299,7 +313,7 @@ export default function TenantDetail() {
                         size="sm"
                         onClick={() => navigate(`/admin/users/${user.id}`)}
                       >
-                        Gerenciar
+                        Manage
                       </Button>
                     </div>
                   ))}
@@ -312,13 +326,13 @@ export default function TenantDetail() {
         <TabsContent value="settings" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Configurações da Loja</CardTitle>
+              <CardTitle>Store Settings</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <h3 className="text-lg font-medium">Zona de Perigo</h3>
+                <h3 className="text-lg font-medium">Danger Zone</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Ações que podem afetar permanentemente esta loja e seus dados
+                  Actions that can permanently affect this store and its data
                 </p>
                 
                 <Button 
@@ -327,12 +341,12 @@ export default function TenantDetail() {
                   disabled={users.length > 0}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Excluir Loja
+                  Delete Store
                 </Button>
                 
                 {users.length > 0 && (
                   <p className="text-xs text-muted-foreground mt-2">
-                    Você precisa remover todos os usuários antes de excluir a loja
+                    You need to remove all users before deleting the store
                   </p>
                 )}
               </div>
@@ -347,19 +361,19 @@ export default function TenantDetail() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Isso excluirá permanentemente a loja
-              "{tenant.name}" e todos os dados associados.
+              This action cannot be undone. It will permanently delete the
+              "{tenant.name}" store and all associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Sim, excluir loja
+              Yes, delete store
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
