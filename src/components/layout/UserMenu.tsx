@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LogOut, Settings, User } from 'lucide-react';
+import { LogOut, Settings, User, Building } from 'lucide-react';
 
 export function UserMenu() {
   const { user, profile, signOut } = useAuth();
