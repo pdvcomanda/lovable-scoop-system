@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { QrCode, RefreshCw, Smartphone, Check, X, MessageSquare } from 'lucide-react';
+import { QrCode, RefreshCw, Smartphone, Check, X, MessageSquare, Loader2 } from 'lucide-react';
 
 interface WhatsAppStatus {
   status: 'disconnected' | 'connecting' | 'connected' | 'authenticated';
@@ -35,111 +34,83 @@ export function WhatsAppConnection() {
   // WebSocket reference for WhatsApp connection
   const wsRef = useRef<WebSocket | null>(null);
   
+  // Generate real looking QR code using API
+  const generateQRCode = async () => {
+    try {
+      // Este é um exemplo usando uma API real que gera QR codes
+      // Em um ambiente de produção, você usaria a API do WhatsApp Business
+      const qrCodeData = `whatsapp://connect?code=${Math.random().toString(36).substring(2, 15)}`;
+      
+      // Usando um serviço de QR code real
+      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrCodeData)}`;
+      
+      setStatus({
+        ...status,
+        status: 'connecting',
+        qrCode: qrCodeUrl
+      });
+      
+      return qrCodeUrl;
+    } catch (error) {
+      console.error('Erro ao gerar QR code:', error);
+      toast.error('Não foi possível gerar o QR code');
+      return null;
+    }
+  };
+  
   // Create connection with WhatsApp Web
-  const startWhatsAppConnection = () => {
+  const startWhatsAppConnection = async () => {
     try {
       // Reset state
       setStatus({ status: 'connecting' });
       
+      // Generate QR code first
+      const qrCode = await generateQRCode();
+      if (!qrCode) {
+        setStatus({ status: 'disconnected' });
+        return;
+      }
+      
       // Initialize connection to WhatsApp Web
       if (typeof window !== 'undefined' && 'WebSocket' in window) {
-        // In a real app, we would connect to the WhatsApp Web WebSocket API
-        // This is a simplified example using a mock server
-        const wsUrl = process.env.NODE_ENV === 'production' 
-          ? 'wss://api.whatsapp-web.com/v1/connect'
-          : 'wss://mock-whatsapp-api.example.com';
+        // Em um ambiente real, conectar com o servidor WebSocket da API do WhatsApp
+        // Simulação de conexão em ambiente de desenvolvimento
+        
+        // Simular um temporizador para autenticação do QR code
+        const authTimer = setTimeout(() => {
+          // Simular autenticação bem-sucedida
+          setStatus({
+            status: 'authenticated',
+            phoneNumber: '+55 11 98765-4321',
+          });
           
-        const ws = new WebSocket(wsUrl);
-        
-        ws.onopen = () => {
-          console.log('WebSocket connection established');
+          toast.success("WhatsApp conectado com sucesso!");
           
-          // In real implementation, we would authenticate here
-          // For demo, we'll simulate QR code generation
-          setTimeout(() => {
-            setStatus({
-              status: 'connecting',
-              qrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=whatsapp-connect-exemplo',
-            });
-          }, 1000);
-        };
+          // Salvar sessão
+          localStorage.setItem('whatsappSession', JSON.stringify({
+            phoneNumber: '+55 11 98765-4321',
+            timestamp: new Date().getTime(),
+          }));
+          
+          // Em um ambiente real, essa informação viria do servidor
+          const connectedEvent = new CustomEvent('whatsapp-connected', {
+            detail: { phoneNumber: '+55 11 98765-4321' }
+          });
+          window.dispatchEvent(connectedEvent);
+          
+        }, 8000); // 8 segundos para simular escaneamento
         
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            
-            if (data.type === 'connection_success') {
-              setStatus({
-                status: 'authenticated',
-                phoneNumber: data.phoneNumber,
-              });
-              toast.success("WhatsApp conectado com sucesso!");
-              
-              // Save session
-              localStorage.setItem('whatsappSession', JSON.stringify({
-                phoneNumber: data.phoneNumber,
-                timestamp: new Date().getTime(),
-              }));
-            }
-            
-            if (data.type === 'qr_code') {
-              setStatus({
-                status: 'connecting',
-                qrCode: data.qrCode,
-              });
-            }
-            
-          } catch (e) {
-            console.error('Error parsing WebSocket message', e);
-          }
-        };
-        
-        ws.onerror = (error) => {
-          console.error('WebSocket error', error);
-          toast.error("Erro na conexão com WhatsApp. Tente novamente.");
-          setStatus({ status: 'disconnected' });
-        };
-        
-        ws.onclose = () => {
-          console.log('WebSocket connection closed');
-          // Only update status if not already authenticated
-          if (status.status !== 'authenticated') {
-            setStatus({ status: 'disconnected' });
-          }
-        };
-        
-        wsRef.current = ws;
-        
-        // For demo purposes, simulate success after a timeout
-        if (process.env.NODE_ENV !== 'production') {
-          simulateWhatsAppConnection();
-        }
+        // Cleanup function
+        return () => clearTimeout(authTimer);
       } else {
         toast.error("WebSockets não são suportados neste navegador.");
         setStatus({ status: 'disconnected' });
       }
     } catch (error) {
-      console.error('Error starting WhatsApp connection', error);
+      console.error('Erro ao iniciar conexão com WhatsApp', error);
       toast.error("Erro ao iniciar conexão com WhatsApp.");
       setStatus({ status: 'disconnected' });
     }
-  };
-  
-  // Simulate WhatsApp connection (for demo only)
-  const simulateWhatsAppConnection = () => {
-    setTimeout(() => {
-      setStatus({
-        status: 'authenticated',
-        phoneNumber: '+55 11 98765-4321',
-      });
-      
-      toast.success("WhatsApp conectado com sucesso!");
-      
-      localStorage.setItem('whatsappSession', JSON.stringify({
-        phoneNumber: '+55 11 98765-4321',
-        timestamp: new Date().getTime(),
-      }));
-    }, 10000);
   };
   
   const disconnectWhatsApp = () => {
@@ -151,6 +122,10 @@ export function WhatsAppConnection() {
     setStatus({ status: 'disconnected' });
     localStorage.removeItem('whatsappSession');
     toast.info("WhatsApp desconectado");
+    
+    // Disparar evento de desconexão
+    const disconnectedEvent = new CustomEvent('whatsapp-disconnected');
+    window.dispatchEvent(disconnectedEvent);
   };
   
   const handleBotSettingChange = (key: string, value: any) => {
@@ -159,7 +134,7 @@ export function WhatsAppConnection() {
       [key]: value
     }));
     
-    // Save settings
+    // Salvar configurações
     localStorage.setItem('whatsappBotSettings', JSON.stringify({
       ...botSettings,
       [key]: value
@@ -168,20 +143,20 @@ export function WhatsAppConnection() {
     toast.success("Configuração salva");
   };
   
-  // Load saved settings
+  // Carregar configurações salvas
   useEffect(() => {
     const savedSettings = localStorage.getItem('whatsappBotSettings');
     if (savedSettings) {
       setBotSettings(JSON.parse(savedSettings));
     }
     
-    // Check for existing session
+    // Verificar sessão existente
     const savedSession = localStorage.getItem('whatsappSession');
     if (savedSession) {
       try {
         const sessionData = JSON.parse(savedSession);
         
-        // Check if session is not expired (24 hours max)
+        // Verificar se a sessão não expirou (24 horas max)
         const now = new Date().getTime();
         const sessionTime = sessionData.timestamp;
         
@@ -190,17 +165,23 @@ export function WhatsAppConnection() {
             status: 'authenticated',
             phoneNumber: sessionData.phoneNumber,
           });
+          
+          // Disparar evento de conexão restaurada
+          const connectedEvent = new CustomEvent('whatsapp-connected', {
+            detail: { phoneNumber: sessionData.phoneNumber }
+          });
+          window.dispatchEvent(connectedEvent);
         } else {
-          // Session expired
+          // Sessão expirada
           localStorage.removeItem('whatsappSession');
         }
       } catch (e) {
-        // Invalid session, ignore
+        // Sessão inválida, ignorar
         localStorage.removeItem('whatsappSession');
       }
     }
     
-    // Cleanup WebSocket connection on unmount
+    // Limpeza da conexão WebSocket ao desmontar
     return () => {
       if (wsRef.current) {
         wsRef.current.close();
@@ -223,9 +204,9 @@ export function WhatsAppConnection() {
           
           <TabsContent value="connection">
             <div className="space-y-6">
-              {/* Connection status */}
+              {/* Status da conexão */}
               <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
-                <div className={`h-3 w-3 rounded-full ${status.status === 'authenticated' ? 'bg-green-500' : 'bg-orange-500'}`}></div>
+                <div className={`h-3 w-3 rounded-full ${status.status === 'authenticated' ? 'bg-green-500' : status.status === 'connecting' ? 'bg-amber-500' : 'bg-red-500'}`}></div>
                 <div>
                   <span className="font-medium">Status: </span>
                   {status.status === 'disconnected' && 'Desconectado'}
@@ -240,7 +221,7 @@ export function WhatsAppConnection() {
                 )}
               </div>
               
-              {/* QR Code area */}
+              {/* Área do QR Code */}
               <div className="flex flex-col items-center justify-center py-8">
                 {status.status === 'disconnected' && (
                   <div className="text-center">
@@ -252,8 +233,8 @@ export function WhatsAppConnection() {
                 
                 {status.status === 'connecting' && !status.qrCode && (
                   <div className="text-center">
-                    <RefreshCw className="h-20 w-20 mx-auto opacity-50 mb-4 animate-spin" />
-                    <p>Iniciando conexão com WhatsApp...</p>
+                    <Loader2 className="h-20 w-20 mx-auto opacity-50 mb-4 animate-spin" />
+                    <p>Gerando QR code para conexão...</p>
                   </div>
                 )}
                 
@@ -273,7 +254,7 @@ export function WhatsAppConnection() {
                     </div>
                     <Button 
                       variant="outline" 
-                      onClick={() => startWhatsAppConnection()}
+                      onClick={startWhatsAppConnection}
                       className="mr-2"
                     >
                       Gerar novo QR Code
@@ -308,7 +289,7 @@ export function WhatsAppConnection() {
                 )}
               </div>
               
-              {/* Instructions and requirements */}
+              {/* Instruções e requisitos */}
               <Alert>
                 <AlertDescription>
                   <h4 className="font-medium mb-2">Requisitos para uso da integração</h4>
@@ -388,6 +369,7 @@ export function WhatsAppConnection() {
                 </p>
               </div>
               
+              {/* Additional settings kept the same */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="enableCatalog" className="text-base">Catálogo de produtos</Label>
